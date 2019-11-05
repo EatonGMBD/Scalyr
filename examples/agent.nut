@@ -1,16 +1,35 @@
-@include __PATH__ + "./../Scalyr.agent.lib.nut"
+@include once __PATH__ + "./../Scalyr.agent.lib.nut"
 
-const SCALYR_API_KEY = "<your key goes here>";
+const AGENT_HOST_LOOKUP_URL = "http://localhost:32737"
+const SCALYR_API_KEY = "@{SCALYR_API_KEY}";
 
-local scalyr = Scalyr(SCALYR_API_KEY);
+Scalyr.init({
+	"apiWriteLogsToken" : SCALYR_API_KEY,
+	"sessionInfo"		: {
+		"serverHost"	: http.jsondecode(http.get(AGENT_HOST_LOOKUP_URL).sendsync().body).host,	// This is NOT documented, and may not be supported forever but it will tell you what impCloud server you are running on in <2ms
+		"agentID"		: split(http.agenturl(), "/")[2],
+        "deploymentID"	: __EI.DEPLOYMENT_ID	// `impt build info -b THIS_VALUE` will tell you everything you want to know about Product/Device Group/etc.
+	}
+	// "logLevel"			: SCALYR_SEV.DEBUG
+});
 
-function log() {
-    local logStr = " [ ] " + time() + " log";
-    scalyr.log(logStr);
-    server.log(logStr);
+g_Counter <- 0
+function loop(){
+	server.log("Adding events... g_Counter = " + g_Counter)
+	Scalyr.addEvent({
+		"counter"		: g_Counter++,
+		"freeMemory" 	: imp.getmemoryfree()
+		"evt"			: 1
+	})
 
-    imp.wakeup(1, log);
+	Scalyr.addEvent({
+		"counter"		: g_Counter++,
+		"freeMemory" 	: imp.getmemoryfree()
+		"evt"			: 2
+	})
+
+	imp.wakeup(5.0, loop)
 }
 
-log();
+loop()
 
