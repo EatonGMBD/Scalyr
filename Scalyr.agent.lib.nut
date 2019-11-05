@@ -1,7 +1,7 @@
 @include once "github:electricimp/Promise/Promise.lib.nut@v4.0.0"
 @include once "github:deldrid1/PrettyPrinter/PrettyPrinter.singleton.nut@v1.0.2"
 
-@include once __PATH__ + "./lib/UUIDGenerator.singleton.nut"	//TODO: Replace lib folder with dedicated repos...
+@include once __PATH__ + "/lib/UUIDGenerator.singleton.nut"	//TODO: Replace lib folder with dedicated repos...
 
 enum SCALYR_SEV {
     VERBOSE, // 0
