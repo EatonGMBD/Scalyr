@@ -72,7 +72,7 @@ Scalyr <- {
 			this.logDebug = true;
 		}
 
-		this._baseUrl = this.urlNormalize(this._baseUrl)
+		this._baseUrl = this._urlNormalize(this._baseUrl)
 		this._session = UUIDGenerator.v1(imp.configparams.deviceid.slice(4))
 
 		server.log("Scalyr initialized with Session ID " + this._session)
@@ -83,16 +83,16 @@ Scalyr <- {
 
 	// The attrs field specifies the "content" of the event. A simple event might contain only a single text field:
 	// The "sev" (severity) field should range from 0 to 6, and identifies the importance of this event, using the classic scale "finest, finer, fine, info, warning, error, fatal". This field is optional (defaults to 3 / info).
-	addEvent = function(attrs, severityEnum = SCALYR_SEV.INFO){
+	addEvent = function(attrs, severityEnum = SCALYR_SEV.INFO, flatten=true){
 		// server.log("Scalyr.addEvent called")
 
         return Promise(function(fulfill, reject){
             local event = {
-                // "thread": 				// "identifier for this server thread (optional)",
-                "ts"    : this._timestamp()	// event timestamp (nanoseconds since 1/1/1970).  Note that the timestamp is specified as a string, not a number. This is because some JSON packages convert all numbers to floating-point, and a standard 64-bit floating point value does not have sufficient resolution for a nanosecond timestamp. Scalyr uses timestamps internally to identify events, so the ts field must be strictly increasing — each event must have a larger timestamp than the preceding event. This applies to all /addEvents invocations for a given session; each session (identified by the session parameter to /addEvents) has an independent timestamp sequence. So one easy way to ensure valid timestamps is for each client to keep track of the last timestamp it used, and ensure that the next timestamp it generates is at least 1 (nanosecond) larger.
-                // "type" : eventType		// The type field indicates a "normal" event, or the beginning or end of an event pair. A normal event has type 0, start events have type 1, and end events have type 2. This field is optional (defaults to 0).
-                "sev"   : severityEnum		// The "sev" (severity) field should range from 0 to 6, and identifies the importance of this event, using the classic scale "finest, finer, fine, info, warning, error, fatal". This field is optional (defaults to 3 / info).
-                "attrs" : attrs				// The attrs field specifies the "content" of the event. A simple event might contain only a single text field, However, it's better to break out individual components so that they can be queried on later.  Note that numeric values should be passed as JSON numbers, not quoted strings.
+                // "thread": 												// "identifier for this server thread (optional)",
+                "ts"    : this._timestamp()									// event timestamp (nanoseconds since 1/1/1970).  Note that the timestamp is specified as a string, not a number. This is because some JSON packages convert all numbers to floating-point, and a standard 64-bit floating point value does not have sufficient resolution for a nanosecond timestamp. Scalyr uses timestamps internally to identify events, so the ts field must be strictly increasing — each event must have a larger timestamp than the preceding event. This applies to all /addEvents invocations for a given session; each session (identified by the session parameter to /addEvents) has an independent timestamp sequence. So one easy way to ensure valid timestamps is for each client to keep track of the last timestamp it used, and ensure that the next timestamp it generates is at least 1 (nanosecond) larger.
+                // "type" : eventType										// The type field indicates a "normal" event, or the beginning or end of an event pair. A normal event has type 0, start events have type 1, and end events have type 2. This field is optional (defaults to 0).
+                "sev"   : severityEnum										// The "sev" (severity) field should range from 0 to 6, and identifies the importance of this event, using the classic scale "finest, finer, fine, info, warning, error, fatal". This field is optional (defaults to 3 / info).
+                "attrs" : flatten==true ? _flattenTable(attrs) : attrs		// The attrs field specifies the "content" of the event. A simple event might contain only a single text field, However, it's better to break out individual components so that they can be queried on later.  Note that numeric values should be passed as JSON numbers, not quoted strings.
             }
 
             this._arrayEvents.push({
@@ -125,10 +125,55 @@ Scalyr <- {
 
 
     //Normalize the trailing "/" in a url - make sure it is included
-    urlNormalize = function(url){
-		// server.log("Scalyr.urlNormalize called")
+    _urlNormalize = function(url){
+		// server.log("Scalyr._urlNormalize called")
         return url[url.len()-1] == '/' ? url : url + "/"
     }
+
+	/**
+	* Moves nested tables/arrays to the root of a table
+	* @method _flattenTable
+	* @param  {[table]}     container   table to flatten
+	* @param  {[string]}    delimitter  string to seperate keys
+	* @param  {[table]}     result      the flattened table
+	* @param  {[string]}    path        path of parent keys
+	* @param  {[integer]}   level       nested level
+	* @returns                          the flatted table
+	*
+	* local t = {
+				a = {
+					b = {
+						c = {
+							d = {
+								e = "e",
+							}
+						}
+					}
+				}
+			};
+		_flattenTable(t) -> { a_b_c_d_e = "e"}
+	*/
+	_flattenTable <- function(container, delimitter = "_", result = {}, path = "", level=0){
+		if (level >= 32) {
+			throw "cyclic data structure detected";
+		}
+
+		switch(typeof(container)){
+			case "table":
+			case "array":
+				foreach( k,v in container){
+					local newPath = level > 0 ? path + delimitter + k : k;
+					local newResult = _flattenTable(v, delimitter, result, newPath, level + 1);  // recursion is fun :)
+					if(typeof(newResult) != "table" && typeof(newResult) != "array")    // We want a leafy thing - don't store empty tables to get to the actual data points in the thing we are returning (otherwise JSONEncoder will bomb out with circular references)
+						result[newPath] <- newResult;
+				}
+				return result;
+			case "blob":
+				return clone(container);
+			default:
+				return container;
+		}
+	}
 
 	// Return an event timestamp as a string (nanoseconds since 1/1/1970)
 	_timestamp = function(){
