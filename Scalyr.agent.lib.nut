@@ -57,7 +57,16 @@ Scalyr <- {
 
         // Optional configuration (we will generate these if they are not provided)
         this._baseUrl       		= "baseUrl" 	in options ? options.baseUrl 		: "https://www.scalyr.com/"
-		this._sessionInfo 			= "sessionInfo" in options ? options.sessionInfo 	: { "agentID": split(http.agenturl(), "/")[2] }
+		this._sessionInfo 			= "sessionInfo" in options ? options.sessionInfo 	: 	{
+																								// "serverHost"	    : http.jsondecode(http.get(AGENT_HOST_LOOKUP_URL).sendsync().body).host,	// This is NOT documented, and may not be supported forever but it will tell you what impCloud server you are running on in <2ms
+																								"idAgent"		    : split(http.agenturl(), "/")[2],
+																								"idProduct"         : __EI.PRODUCT_ID,
+																								"productName"       : __EI.PRODUCT_NAME,
+																								"idDeviceGroup"     : __EI.DEVICEGROUP_ID,
+																								"deviceGroupName"   : __EI.DEVICEGROUP_NAME,
+																								"deviceGroupType"   : __EI.DEVICEGROUP_TYPE,
+																								"idDeployment"	    : __EI.DEPLOYMENT_ID	// `impt build info -b THIS_VALUE` will tell you everything you want to know about Product/Device Group/etc. (i.e. the info above)
+																							}
 
 		if("logLevel" in options && options.logLevel <= SCALYR_SEV.DEBUG){
 			this.logDebug = true;
