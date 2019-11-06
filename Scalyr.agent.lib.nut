@@ -153,7 +153,7 @@ Scalyr <- {
 			};
 		_flattenTable(t) -> { a_b_c_d_e = "e"}
 	*/
-	_flattenTable <- function(container, delimitter = "_", result = {}, path = "", level=0){
+	_flattenTable = function(container, delimitter = "_", result = {}, path = "", level=0){
 		if (level >= 32) {
 			throw "cyclic data structure detected";
 		}
