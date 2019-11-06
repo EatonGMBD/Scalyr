@@ -16,17 +16,23 @@ Scalyr.init({
 g_Counter <- 0
 function loop(){
 	server.log("Adding events... g_Counter = " + g_Counter)
-	Scalyr.addEvent({
-		"counter"		: g_Counter++,
-		"freeMemory" 	: imp.getmemoryfree()
-		"evt"			: 1
+
+	Promise.all([
+		Scalyr.addEvent({
+			"counter"		: g_Counter++,
+			"freeMemory" 	: imp.getmemoryfree()
+			"evt"			: 1
+		}),
+
+		Scalyr.addEvent({
+			"counter"		: g_Counter++,
+			"freeMemory" 	: imp.getmemoryfree()
+			"evt"			: 2
+		})
+	]).then(function(data){
+		server.log("Scalyr logs sent successfully!")
 	})
 
-	Scalyr.addEvent({
-		"counter"		: g_Counter++,
-		"freeMemory" 	: imp.getmemoryfree()
-		"evt"			: 2
-	})
 
 	imp.wakeup(5.0, loop)
 }

@@ -1,3 +1,6 @@
+# Temporary file system files
+.DS_Store
+
 # Logs
 logs
 *.log
@@ -27,8 +30,21 @@ build/Release
 # https://docs.npmjs.com/misc/faq#should-i-check-my-node-modules-folder-into-git
 node_modules
 
-#Used by Builder to cache external files for 24 hours
+# Used by our linter
+*.bundled
+
+# Used by Builder to cache external files for 24 hours
 .builder-cache
+
+# Used by impt to cache authentication information locally
+.impt.auth*
 
 # exclude any compiled files (they should be set as tagged releases)
 build
+
+# exclude the temp folder for saving trash files to (ElectricImp-Sublime makes you save all files at every deploy which can become obnoxious - just save them to /temp and its not an issue)
+temp
+github.conf
+
+# Exclude our secrets File
+.impt.project.secrets
