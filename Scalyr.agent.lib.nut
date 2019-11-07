@@ -60,6 +60,7 @@ Scalyr <- {
 		this._sessionInfo 			= "sessionInfo" in options ? options.sessionInfo 	: 	{
 																								// "serverHost"	    : http.jsondecode(http.get(AGENT_HOST_LOOKUP_URL).sendsync().body).host,	// This is NOT documented, and may not be supported forever but it will tell you what impCloud server you are running on in <2ms
 																								"idAgent"		    : split(http.agenturl(), "/")[2],
+                                                                                                "idDevice"          : imp.configparams.deviceid,
 																								"idProduct"         : __EI.PRODUCT_ID,
 																								"productName"       : __EI.PRODUCT_NAME,
 																								"idDeviceGroup"     : __EI.DEVICEGROUP_ID,
@@ -75,7 +76,11 @@ Scalyr <- {
 		this._baseUrl = this._urlNormalize(this._baseUrl)
 		this._session = UUIDGenerator.v1(imp.configparams.deviceid.slice(4))
 
-		server.log("Scalyr initialized with Session ID " + this._session)
+		server.log("Scalyr initialized! To find logs, login and search any (or combinations of) the following at https://www.scalyr.com/events")
+        server.log("$session == \"" + this._session + "\"")
+        foreach(k,v in this._sessionInfo){
+            server.log("$" + k + " == \"" + v + "\"")
+        }
 
 		return this;
     }
