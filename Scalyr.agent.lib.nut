@@ -76,7 +76,7 @@ Scalyr <- {
 		this._baseUrl = this._urlNormalize(this._baseUrl)
 		this._session = UUIDGenerator.v1(imp.configparams.deviceid.slice(4))
 
-		server.log("Scalyr initialized! To find logs, login and search any (or combinations of) the following at https://www.scalyr.com/events")
+		server.log("Scalyr initialized! To find logs, login and search any (or combinations) of the following at https://www.scalyr.com/events")
         server.log("$session == \"" + this._session + "\"")
         foreach(k,v in this._sessionInfo){
             server.log("$" + k + " == \"" + v + "\"")
