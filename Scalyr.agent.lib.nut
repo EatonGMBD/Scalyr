@@ -289,13 +289,17 @@ Scalyr <- {
 	}
 
 	// return a Promise
-    _createRequestPromise = function(method, url, headers, body = "", returnFullResponseOnSuccess = false, bodyEncoder = http.jsonencode.bindenv(http)) {
+    _createRequestPromise = function(method, url, headers, body = "", returnFullResponseOnSuccess = false, bodyEncoder = null) {
 		// server.log("Scalyr._createRequestPromise called")
 		local reqTable = {
 			"method": method,
 			"url": url,
 			"headers": headers,
 			"body": body
+		}
+
+		if (bodyEncoder == null){
+			bodyEncoder = http.jsonencode.bindenv(http)
 		}
 
         return Promise(function (resolve, reject) {
