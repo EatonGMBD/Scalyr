@@ -88,7 +88,7 @@ Scalyr <- {
 
 	// The attrs field specifies the "content" of the event. A simple event might contain only a single text field:
 	// The "sev" (severity) field should range from 0 to 6, and identifies the importance of this event, using the classic scale "finest, finer, fine, info, warning, error, fatal". This field is optional (defaults to 3 / info).
-	addEvent = function(attrs, severityEnum = SCALYR_SEV.INFO, flatten=true){
+	addEvent = function(attrs, severityEnum = SCALYR_SEV.INFO, flatten=true, encoder=null){
 		// server.log("Scalyr.addEvent called")
 
         return Promise(function(fulfill, reject){
@@ -103,7 +103,8 @@ Scalyr <- {
             this._arrayEvents.push({
                 "fulfill": fulfill,
 				"reject": reject,
-                "event": event
+                "event": event,
+                "encoder": encoder
             });
 
             if(this._timerSendAddEvents == null && this._lockOutTimerSendAddEvents == null){
@@ -228,8 +229,17 @@ Scalyr <- {
 		local url = this._baseUrl + "addEvents"
 
         local events = []
-        local sentEventsCounter = this._arrayEvents.len()
-        for(local i=0; i<sentEventsCounter; i++) events.push(this._arrayEvents[i].event)
+        local bodyEncoder = this._arrayEvents[0].encoder;
+
+        // if event uses a different encoder we will have to send it in the next request
+        foreach(eventContainer in this._arrayEvents){
+            if (eventContainer.encoder != bodyEncoder){
+                break;
+            }
+            events.push(eventContainer.event)
+        }
+
+        local sentEventsCounter = events.len();
 
 		local body = {
 			"token"			: this._apiWriteLogsToken,
@@ -244,7 +254,7 @@ Scalyr <- {
 			delete body.sessionInfo
 		}
 
-		return this._createRequestPromise("POST", url, this._defaultHeaders, body)
+		return this._createRequestPromise("POST", url, this._defaultHeaders, body, false, bodyEncoder)
             .then(function(data){
                 for(local i=0; i< sentEventsCounter; i++) this._arrayEvents[i].fulfill(data)
             }.bindenv(this))
@@ -279,13 +289,17 @@ Scalyr <- {
 	}
 
 	// return a Promise
-    _createRequestPromise = function(method, url, headers, body = "", returnFullResponseOnSuccess = false, bodyEncoder = http.jsonencode.bindenv(http)) {
+    _createRequestPromise = function(method, url, headers, body = "", returnFullResponseOnSuccess = false, bodyEncoder = null) {
 		// server.log("Scalyr._createRequestPromise called")
 		local reqTable = {
 			"method": method,
 			"url": url,
 			"headers": headers,
 			"body": body
+		}
+
+		if (bodyEncoder == null){
+			bodyEncoder = http.jsonencode.bindenv(http)
 		}
 
         return Promise(function (resolve, reject) {
